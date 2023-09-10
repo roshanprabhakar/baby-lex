@@ -1,0 +1,4 @@
+A much better tokenizer, based on regular expressions (like lex).
+Given a set of regular expressions, this lexer will generate parse trees
+for the regular expressions, and combine them into a single DFA representation.
+The tokenizer will deploy this FA to extract tokens from the input stream.

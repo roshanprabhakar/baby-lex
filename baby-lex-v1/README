@@ -1,0 +1,5 @@
+This project demonstrates a hard-coded lexer that cannot accept tokens defined as regular expressions.
+Tokens either belong to a set of single character tokens, or are strings of alphanumeric chars.
+As such, the lexer cannot identify two tokens of alphanumeric string type that are placed adjacently in the input buffer.
+
+This is a bad lexer, but the symbol table is usable.
