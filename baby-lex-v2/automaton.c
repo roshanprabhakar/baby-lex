@@ -24,6 +24,23 @@ void destroy_state(struct state *s)
 	destroy_queue(&s->nil_connections);
 }
 
+void dump_state(struct state *s)
+{
+	printf("------- STATE %d -------\n", s->id);
+	for (int i = 0; i < sizeof(s->group_connections) / sizeof(struct queue); ++i)
+	{
+		struct queue *q = s->group_connections + i;
+		printf("%ld group %c connections: ", queue_length(q), 'A' + i);
+		// print connections in this queue.
+		printf("\n");
+	}
+	struct queue *q = &s->nil_connections;
+
+	printf("%ld nil connections: ", queue_length(q));
+	// print nill connections.
+	printf("\n");
+}
+
 static int build_term_automaton(struct regex_parse_tree *, struct buffer *,
 		struct state *, struct state *);
 static int build_factor_automaton(struct regex_parse_tree *, struct buffer *,

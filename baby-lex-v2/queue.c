@@ -35,6 +35,14 @@ void *queue_peek(struct queue *q)
 	return (char *) q->data + q->pop_curs * q->atom_size_bytes;
 }
 
+long queue_length(struct queue *q)
+{
+	printf("push_curs: %ld, pop_curs: %ld ", q->push_curs, q->pop_curs);
+	return (q->push_curs < q->pop_curs) ?
+		q->push_curs + q->capacity - q->pop_curs :
+		q->push_curs - q->pop_curs;
+}
+
 // If the queue is empty, return 1. On success, dest holds the 
 // first-in value, and 0 is returned.
 int queue_pop(struct queue *q, void *dest)

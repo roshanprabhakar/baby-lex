@@ -43,12 +43,32 @@ int main()
 		.capacity = sizeof(struct state) * (num_states)
 	};
 
+	// Give ids to all allocable states.
+	for (int i = 0; i < num_states; ++i)
+	{ ((struct state *)b_automaton.p)[i].id = i; }
+
 	struct state *i = buffer_alloc(&b_automaton, sizeof(struct state));
 	struct state *f = buffer_alloc(&b_automaton, sizeof(struct state));
 	(void) build_regex_automaton(b_parse_tree.p, &b_automaton, i, f);
 
-	// Free entire parse tree and automaton in one go.
+	// Dump automaton state.
+	for (int i = 0; i < b_automaton.write_curs / sizeof(struct state); ++i)
+	{
+		struct state *s = ((struct state *)b_automaton.p) + i;
+		dump_state(s);
+	}
+
+	// ----------------------------
+	// Destroy parse.
+	// Destroy and free all states.
+	// ----------------------------
+
 	free(b_parse_tree.p);
+
+	for (int i = 0; i < b_automaton.write_curs / sizeof(struct state); ++i)
+	{
+		destroy_state(((struct state *)b_automaton.p) + i);
+	}
 	free(b_automaton.p);
 
 	return 0;

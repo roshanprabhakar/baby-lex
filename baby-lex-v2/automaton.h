@@ -22,6 +22,7 @@ struct state
 	// current: 0 -> A, ... 3 -> D
 	struct queue group_connections[4];
 	struct queue nil_connections;
+	int id;
 };
 
 // Initialize all queues in s.
@@ -29,6 +30,9 @@ void init_state(struct state *s);
 
 // Free all dynamic memory owned by s.
 void destroy_state(struct state *s);
+
+// For debug purposes.
+void dump_state(struct state *s);
 
 // Given a double pointer to an initial state, a double pointer to a final state,
 // a bank of allocable states, and a regex parse tree, this function constructs the

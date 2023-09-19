@@ -19,4 +19,6 @@ int queue_push(struct queue *q, void *src);
 int queue_pop(struct queue *q, void *dst);
 void *queue_peek(struct queue *q);
 
+long queue_length(struct queue *q);
+
 #endif // QUEUE_H
