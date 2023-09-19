@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "lexer.h"
+#include "regex.h"
 
 /* Regex CFG:
  *  regex -> term '|' regex | term
@@ -28,15 +28,19 @@
 // we need to allocate for the full regex's parse tree.
 int regex(char **, struct buffer *, struct regex_parse_tree **);
 
+
 static int term(char **, struct buffer *, struct regex_parse_tree **);
 static int factor(char **, struct buffer *, struct regex_parse_tree **);
 static int atom(char **, struct buffer *, struct regex_parse_tree **);
+
 
 /* Given a reference to a char *, advance the char * until it points to a non
  * delimiting character. */
 static void strip_head(char **in) { while (**in == ' ' || **in == '\t' || **in == '\n') ++(*in); }
 
+
 static int is_alphabet(char c) { return c == 'A' || c == 'B'; }
+
 
 /* In a regex_parse_tree of type NODE_ATOM, we determine whether the op_left holds a char
  * based on the value of op_right.holds_alpha. This works since for atom nodes, the right
@@ -77,6 +81,7 @@ static int atom(char **in, struct buffer *b, struct regex_parse_tree **root)
 							// be triggered if !is_alphabet
 		{
 			(*root)->op_right.holds_alpha = 1;
+			(*root)->op_left.alphabet = *in_ref;
 		}
 	}
 	else 									{ printf("ERROR: atom parse: alphabet expected but not found. "); exit(0); }
@@ -86,6 +91,7 @@ static int atom(char **in, struct buffer *b, struct regex_parse_tree **root)
 	*in = in_ref;
 	return ret;
 }
+
 
 static int factor(char **in, struct buffer *b, struct regex_parse_tree **root)
 {
@@ -110,8 +116,10 @@ static int factor(char **in, struct buffer *b, struct regex_parse_tree **root)
 	// If a unary operator follows, record it in the new node.
 	if (*in_ref == '*' || *in_ref == '?')
 	{
+		if (root) 
+		{ (*root)->op_right.unary = *in_ref; }
+
 		++in_ref;
-		if (root) { (*root)->op_right.unary = *in_ref; }
 	}
 	else if (root)
 	{
@@ -121,6 +129,7 @@ static int factor(char **in, struct buffer *b, struct regex_parse_tree **root)
 	*in = in_ref;
 	return ret;
 }
+
 
 static int term(char **in, struct buffer *b, struct regex_parse_tree **root)
 {
@@ -156,6 +165,7 @@ static int term(char **in, struct buffer *b, struct regex_parse_tree **root)
 	*in = in_ref;
 	return ret;
 }
+
 
 int regex(char **in, struct buffer *b, struct regex_parse_tree **root)
 {
@@ -195,4 +205,43 @@ int regex(char **in, struct buffer *b, struct regex_parse_tree **root)
 	// return status of internal pointer to calling nonterminal function.
 	*in = in_ref;
 	return ret;
+}
+
+
+void dump_regex_parse_tree(struct regex_parse_tree *p)
+{
+	if (p->type == NODE_REGEX)
+	{
+		printf("(");
+		dump_regex_parse_tree(p->op_left.sub_tree);
+		if (p->op_right.sub_tree)
+		{
+			printf("|");
+			dump_regex_parse_tree(p->op_right.sub_tree);
+		}
+		printf(")");
+	}
+	else if (p->type == NODE_TERM)
+	{
+		dump_regex_parse_tree(p->op_left.sub_tree);
+		if (p->op_right.sub_tree)
+		{ dump_regex_parse_tree(p->op_right.sub_tree); }
+	}
+	else if (p->type == NODE_FACTOR)
+	{
+		dump_regex_parse_tree(p->op_left.sub_tree);
+		if (p->op_right.unary) 
+		{ printf("%c", p->op_right.unary); }
+	}
+	else if (p->type == NODE_ATOM)
+	{
+		if (p->op_right.holds_alpha)
+		{ printf("%c", p->op_left.alphabet); }
+		else
+		{ dump_regex_parse_tree(p->op_left.sub_tree); }
+	}
+	else
+	{
+		printf("ERROR");
+	}
 }

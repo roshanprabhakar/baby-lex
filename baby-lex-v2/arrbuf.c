@@ -26,12 +26,13 @@ void *buffer_insert(struct buffer *b, void *data, long nbytes)
 
 void *buffer_alloc(struct buffer *b, long nbytes)
 {
-	void *save;
-	if (b->capacity - b->write_curs < nbytes) return NULL;
+	void *save = NULL;
+	if (b->capacity - b->write_curs < nbytes) goto end;
 	else 
 	{
 		save = (void*) ((char *) b->p + b->write_curs);
 		b->write_curs += nbytes;
 	}
+end:
 	return save;
 }

@@ -1,15 +1,22 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-#include <stdint.h>
-
 #include "arrbuf.h"
 
-enum regex_parse_node_type { NODE_REGEX, NODE_TERM, NODE_FACTOR, NODE_ATOM };
+enum regex_parse_node_type 
+{ 
+	NODE_NULL, 
+	NODE_REGEX, 
+	NODE_TERM, 
+	NODE_FACTOR, 
+	NODE_ATOM, 
+	NODE_UNUSED1,
+	NODE_UNUSED2
+};
 
 struct regex_parse_tree
 {
-	enum regex_parse_node_type type :2;
+	enum regex_parse_node_type type :3;
 	union
 	{
 		struct regex_parse_tree *sub_tree;
@@ -30,5 +37,9 @@ struct regex_parse_tree
 // (to support the inherently recursive nature of parse trees), so we populate
 // *root with a pointer to the created node.
 int regex(char **in, struct buffer *b, struct regex_parse_tree **root);
+
+// For debug purposes, dumps the parse tree to stdout. This is used to validate
+// the construction of the tree. Returns the number of nodes in the tree.
+void dump_regex_parse_tree(struct regex_parse_tree *);
 
 #endif // LEXER_H

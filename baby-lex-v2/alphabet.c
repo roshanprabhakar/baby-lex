@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "lexer.h"
+#include "regex.h"
 #include "arrbuf.h"
 
 /* Step 1: 	Given an alphabet and a set of chars, extract the first alphabet

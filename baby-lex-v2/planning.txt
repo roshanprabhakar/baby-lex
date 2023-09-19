@@ -1,0 +1,50 @@
+//////////////////////////////////////////////////////
+token consumption algorithm:
+
+S := {s_0}
+
+while ((a := nextchar) != EOF):
+
+	// S is the set of states reachable from the current
+	// S, on a character a + directly succeeded by 0 or 
+	// more e transitions.
+
+	S := e-closure(move(S, a));
+
+	// F is the set of accepting states
+	if (S intersects F) break;
+
+// Either token found or at end of input.
+//////////////////////////////////////////////////////
+
+
+move(S, a): 	Gets set of states that can be reached on a-move from S.
+e-closure(S): Gets set of states that can be reached on 0 or more e-moves from S.
+							Equivalent to calling S = S U move(S, e) while move(S, e) is nonempty.
+
+
+
+struct state
+{
+	map<char, vector<state *>> states
+}
+
+
+
+
+
+e-closure(move(state_list &states, char a))
+{
+	for (int i = 0; i < states.length(); ++i)
+	{
+		state s = states.pop_front();
+
+		tmp_state_list = s.states[i][a];
+		while (!tmp_state_list.is_empty())
+		{
+			state s1 = tmp_state_list.pop_front();
+			tmp_state_list.push_back_all(s1.states[e]);
+			states.push_back(s1);
+		}
+	}
+}
