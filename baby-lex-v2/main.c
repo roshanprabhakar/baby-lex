@@ -47,8 +47,8 @@ int main()
 	for (int i = 0; i < num_states; ++i)
 	{ ((struct state *)b_automaton.p)[i].id = i; }
 
-	struct state *i = buffer_alloc(&b_automaton, sizeof(struct state));
-	struct state *f = buffer_alloc(&b_automaton, sizeof(struct state));
+	struct state *i = buffer_alloc(&b_automaton, sizeof(struct state)); init_state(i);
+	struct state *f = buffer_alloc(&b_automaton, sizeof(struct state)); init_state(f);
 	(void) build_regex_automaton(b_parse_tree.p, &b_automaton, i, f);
 
 	// Dump automaton state.
@@ -59,7 +59,7 @@ int main()
 	}
 
 	// ----------------------------
-	// Destroy parse.
+	// Destroy parse tree.
 	// Destroy and free all states.
 	// ----------------------------
 

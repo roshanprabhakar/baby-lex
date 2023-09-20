@@ -4,6 +4,8 @@
 
 #include "queue.h"
 
+#include "automaton.h"
+
 #define QUEUE_CAPACITY_DELTA 3
 
 int init_queue(struct queue *q,
@@ -18,11 +20,11 @@ int init_queue(struct queue *q,
 
 	q->push_curs = q->pop_curs = 0;
 	q->atom_size_bytes = atom_size_bytes;
+	q->capacity = capacity;
 
 	q->data = malloc(atom_size_bytes * capacity);
 	if (!q->data) return -1;
 
-	q->capacity = capacity * atom_size_bytes;
 	return 0;
 }
 
@@ -37,7 +39,6 @@ void *queue_peek(struct queue *q)
 
 long queue_length(struct queue *q)
 {
-	printf("push_curs: %ld, pop_curs: %ld ", q->push_curs, q->pop_curs);
 	return (q->push_curs < q->pop_curs) ?
 		q->push_curs + q->capacity - q->pop_curs :
 		q->push_curs - q->pop_curs;
@@ -99,4 +100,13 @@ int queue_push(struct queue *q, void *src)
 	}
 
 	return queue_extend(q);
+}
+
+void dump_queue(struct queue *q, void (*print_entry)(void *))
+{
+	for (long curs = q->pop_curs; curs != q->push_curs; ++curs)
+	{
+		print_entry((char *)q->data + curs * q->atom_size_bytes);
+		if (curs == q->capacity) curs = 0;
+	}
 }

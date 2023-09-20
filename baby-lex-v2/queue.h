@@ -21,4 +21,7 @@ void *queue_peek(struct queue *q);
 
 long queue_length(struct queue *q);
 
+// For debug purposes.
+void dump_queue(struct queue *q, void (*print_entry) (void *));
+
 #endif // QUEUE_H

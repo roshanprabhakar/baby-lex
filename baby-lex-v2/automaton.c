@@ -10,9 +10,9 @@ void init_state(struct state *s)
 {
 	for (int i = 0; i < sizeof(s->group_connections) / sizeof(struct queue); ++i)
 	{
-		init_queue(s->group_connections + i, sizeof(struct state *), 5);
+		init_queue(s->group_connections + i, sizeof(struct state *), 2);
 	}
-	init_queue(&s->nil_connections, sizeof(struct state *), 10);
+	init_queue(&s->nil_connections, sizeof(struct state *), 5);
 }
 
 void destroy_state(struct state *s)
@@ -24,6 +24,11 @@ void destroy_state(struct state *s)
 	destroy_queue(&s->nil_connections);
 }
 
+static void dump_state_queue_entry(void *p)
+{
+	printf("%d", (*((struct state **)p))->id);
+}
+
 void dump_state(struct state *s)
 {
 	printf("------- STATE %d -------\n", s->id);
@@ -31,13 +36,12 @@ void dump_state(struct state *s)
 	{
 		struct queue *q = s->group_connections + i;
 		printf("%ld group %c connections: ", queue_length(q), 'A' + i);
-		// print connections in this queue.
+		dump_queue(q, &dump_state_queue_entry);
 		printf("\n");
 	}
 	struct queue *q = &s->nil_connections;
-
 	printf("%ld nil connections: ", queue_length(q));
-	// print nill connections.
+	dump_queue(q, &dump_state_queue_entry);
 	printf("\n");
 }
 
@@ -80,6 +84,10 @@ int build_regex_automaton(struct regex_parse_tree *p, struct buffer *bank,
 		{
 			new_i = buffer_alloc(bank, sizeof(struct state)); init_state(new_i);
 			new_f = buffer_alloc(bank, sizeof(struct state)); init_state(new_f);
+
+			// Connect i -> new_i and new_f -> f on nil.
+			queue_push(&i->nil_connections, &new_i);
+			queue_push(&new_f->nil_connections, &f);
 		}
 
 		states_needed = build_regex_automaton(
@@ -112,6 +120,9 @@ static int build_term_automaton(struct regex_parse_tree *p, struct buffer *bank,
 
 	struct state *target = (new_state_needed && construct) ? 
 		buffer_alloc(bank, sizeof(struct state)) : f;
+
+	if (new_state_needed && construct)
+		init_state(target);
 
 	states_needed = build_factor_automaton(p->op_left.sub_tree, bank, i, target);
 	if (states_needed == -1) return -1;
@@ -154,11 +165,11 @@ static int build_factor_automaton(struct regex_parse_tree *p, struct buffer *ban
 	{
 		if (p->op_right.unary == '*')
 		{
-				queue_push(&f->nil_connections, i);
+			queue_push(&f->nil_connections, &i);
 		}
 		else if (p->op_right.unary == '?')
 		{
-				queue_push(&i->nil_connections, f);
+			queue_push(&i->nil_connections, &f);
 		}
 		else if (p->op_right.unary != 0)
 		{
@@ -186,7 +197,9 @@ static int build_atom_automaton(struct regex_parse_tree *p, struct buffer *bank,
 		// We cannot chain combine the two if statements, as we want to trigger the else
 		// regardless of bank && i && f.
 		if (bank && i && f)
-			queue_push((i->group_connections) + (p->op_left.alphabet - 'A'), f);
+		{
+			queue_push(i->group_connections + (p->op_left.alphabet - 'A'), &f);
+		}
 	}
 	else
 	{
