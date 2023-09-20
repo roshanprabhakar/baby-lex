@@ -15,6 +15,11 @@ struct queue
 int init_queue(struct queue *q, unsigned long atom_size_bytes, unsigned long capacity);
 void destroy_queue(struct queue *q);
 
+// The queue elements of src are modifiable from dst.
+// IMPORTANT do NOT push elements into dst. The duplicate should only be used
+// for iteration, and may be safely popped from.
+void queue_dup(struct queue *dst, struct queue *src);
+
 int queue_push(struct queue *q, void *src);
 int queue_pop(struct queue *q, void *dst);
 void *queue_peek(struct queue *q);

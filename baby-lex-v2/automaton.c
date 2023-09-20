@@ -6,6 +6,10 @@
 #include "arrbuf.h"
 #include "queue.h"
 
+  //////////////////////////////////////////////////////////////////////
+ ///////////////// CONSTRUCTING AND INSPECTING STATES /////////////////
+//////////////////////////////////////////////////////////////////////
+
 void init_state(struct state *s)
 {
 	for (int i = 0; i < sizeof(s->group_connections) / sizeof(struct queue); ++i)
@@ -208,5 +212,50 @@ static int build_atom_automaton(struct regex_parse_tree *p, struct buffer *bank,
 		return states_needed;
 	}
 	return 0;
+}
+
+  /////////////////////////////////////////////////////////////////////
+ ///////////////////// TREVERSING THE AUTOMATON //////////////////////
+/////////////////////////////////////////////////////////////////////
+
+/* We start with a queue of states. We are going to modify this queue to reflect
+ * the move operation. If at the end of this procedure q is empty, then there are
+ * no moves possible and the automaton has frozen. q starts containing 1 state:
+ * the initial state.
+ * 
+ * During this process we keep track of the last character that moved the accepting
+ * state in q. A pointer to this character is moved into out, and the characters
+ * between in and out comprise the matching lexeme.
+ */
+void move(struct queue *q, char const *in, char const **out)
+{
+	long num_states = queue_length(q);
+
+	for (char *curs = in; *in && num_states; ++curs)
+	{
+		for (int i = 0; i < num_states; ++i)
+		{
+			struct state *s = queue_pop(q);
+
+			// char_connect and nil_connect may be safely popped from. Doing so
+			// will not change queue's owned by states.
+			struct queue char_connect;
+			queue_dup(&char_connect, s->group_connections + (*in - 'A'));
+
+			struct queue nil_connect;
+			queue_dup(&nil_connect, &s->nil_connections);
+			
+			// Push all nil connections into q.
+			struct state *bin;
+			while (queue_pop(nil_connect, &bin) != -1)
+			{ 
+				queue_push(q, &bin); 
+				if ( // TODO
+			}
+
+		}
+
+		num_states = queue_length(q);
+	}
 }
 

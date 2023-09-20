@@ -28,6 +28,15 @@ int init_queue(struct queue *q,
 	return 0;
 }
 
+void queue_dup(struct queue *dst, struct queue *src)
+{
+	dst->push_curs = src->push_curs;
+	dst->pop_curs = src->pop_curs;
+	dst->capacity = src->capacity;
+	dst->atom_size_bytes = src->atom_size_bytes;
+	dst->data = src->data;
+}
+
 void destroy_queue(struct queue *q)
 { free(q->data); }
 
@@ -44,7 +53,7 @@ long queue_length(struct queue *q)
 		q->push_curs - q->pop_curs;
 }
 
-// If the queue is empty, return 1. On success, dest holds the 
+// If the queue is empty, return -1. On success, dest holds the 
 // first-in value, and 0 is returned.
 int queue_pop(struct queue *q, void *dest)
 {
