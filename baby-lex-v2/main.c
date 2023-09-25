@@ -2,9 +2,6 @@
 #include <stdio.h>
 
 #include "automaton.h"
-#include "regex.h"
-#include "arrbuf.h"
-#include "queue.h"
 
 int main()
 {
@@ -51,18 +48,71 @@ int main()
 	struct state *f = buffer_alloc(&b_automaton, sizeof(struct state)); init_state(f);
 	(void) build_regex_automaton(b_parse_tree.p, &b_automaton, i, f);
 
+	/*
 	// Dump automaton state.
 	for (int i = 0; i < b_automaton.write_curs / sizeof(struct state); ++i)
 	{
 		struct state *s = ((struct state *)b_automaton.p) + i;
 		dump_state(s);
 	}
+	*/
+
+	// Sandbox
+	struct state *src = (struct state *)b_automaton.p + 3;
+	struct state *dst1 = (struct state *)b_automaton.p + 1;
+	struct state *dst2 = (struct state *)b_automaton.p + 2;
+
+	queue_push(&src->nil_connections, &dst1);
+	queue_push(&src->nil_connections, &dst2);
+
+	src = (struct state *)b_automaton.p + 2;
+	dst1 = (struct state *)b_automaton.p + 5;
+
+	queue_push(&src->nil_connections, &dst1);
+
+	// Dump automaton state.
+	for (int i = 0; i < b_automaton.write_curs / sizeof(struct state); ++i)
+	{
+		struct state *s = ((struct state *)b_automaton.p) + i;
+		dump_state(&s);
+	}
+
+	
+	struct state_set set;
+	init_state_set(&set, num_states);
+
+	move_on_nil(b_automaton.p, &set);
+
+	printf("states in e-closure(0):\n");
+	dump_queue(&set.states, &dump_state);
+
+	destroy_state_set(&set);
+
+	/*
+	// Testing move_on_nil.
+	struct bitmap m;
+	init_bitmap(&m, num_states);
+	struct queue q;
+	init_queue(&q, sizeof(struct state *), 3);
+
+	move_on_nil(b_automaton.p, &q, &m);
+
+	printf("nil connected to state 0:\n");
+	while (queue_length(&q))
+	{
+		struct state *s;
+		queue_pop(&q, &s);
+		printf("%d\n", s->id);
+	}
+
+	destroy_bitmap(&m);
+	destroy_queue(&q);
+	*/
 
 	// ----------------------------
 	// Destroy parse tree.
 	// Destroy and free all states.
 	// ----------------------------
-
 	free(b_parse_tree.p);
 
 	for (int i = 0; i < b_automaton.write_curs / sizeof(struct state); ++i)

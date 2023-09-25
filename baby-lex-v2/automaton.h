@@ -1,6 +1,7 @@
 #include "queue.h"
 #include "arrbuf.h"
 #include "regex.h"
+#include "bitmap.h"
 
 /* States are able to connect to any number of other states. The bridge may be a single
  * character, or a character grouping (upper, lower, letter, digit, etc.). Multiple states
@@ -11,6 +12,7 @@
  * 	uppercase letters: -2 '\xfe' [A-Z]
  * 	letters: 					 -3 '\xfd' [a-zA-Z]
  * 	digits: 					 -4 '\xfc' [0-9]
+ * 	nil: 							 -5 '\xfd' [nil connections]
  *
  * Each state contains a queue entry for each of these groups, as well as a separate queue
  * for connections on nil. */
@@ -32,7 +34,7 @@ void init_state(struct state *s);
 void destroy_state(struct state *s);
 
 // For debug purposes.
-void dump_state(struct state *s);
+void dump_state(void *state);
 
 // Given a double pointer to an initial state, a double pointer to a final state,
 // a bank of allocable states, and a regex parse tree, this function constructs the
@@ -42,3 +44,20 @@ void dump_state(struct state *s);
 // complete automaton is returned.
 int build_regex_automaton(struct regex_parse_tree *p, struct buffer *bank,
 		struct state *i, struct state *f);
+
+
+// Traversing the automaton //
+
+struct state_set
+{
+	struct queue states;
+	struct bitmap contained_ids;
+};
+
+void init_state_set(struct state_set *set, int num_states);
+void destroy_state_set(struct state_set *set);
+void state_set_add_state(struct state_set *set, struct state *s);
+int state_set_contains_state(struct state_set *set, struct state *s);
+
+void move_on_nil(struct state *s, struct state_set *set);
+

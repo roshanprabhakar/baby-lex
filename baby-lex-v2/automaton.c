@@ -5,6 +5,7 @@
 #include "regex.h"
 #include "arrbuf.h"
 #include "queue.h"
+#include "bitmap.h"
 
   //////////////////////////////////////////////////////////////////////
  ///////////////// CONSTRUCTING AND INSPECTING STATES /////////////////
@@ -30,11 +31,14 @@ void destroy_state(struct state *s)
 
 static void dump_state_queue_entry(void *p)
 {
-	printf("%d", (*((struct state **)p))->id);
+	printf("%d ", (*((struct state **)p))->id);
 }
 
-void dump_state(struct state *s)
+/* This function takes a double pointer to a state, and is meant for 
+ * inspecting the content of queues (typically pointers). */
+void dump_state(void *p)
 {
+	struct state *s = *(struct state **)p;
 	printf("------- STATE %d -------\n", s->id);
 	for (int i = 0; i < sizeof(s->group_connections) / sizeof(struct queue); ++i)
 	{
@@ -218,6 +222,57 @@ static int build_atom_automaton(struct regex_parse_tree *p, struct buffer *bank,
  ///////////////////// TREVERSING THE AUTOMATON //////////////////////
 /////////////////////////////////////////////////////////////////////
 
+
+void init_state_set(struct state_set *set, int num_states)
+{
+	init_queue(&set->states, sizeof(struct state *), num_states);
+	init_bitmap(&set->contained_ids, num_states);
+}
+
+void destroy_state_set(struct state_set *set)
+{
+	destroy_queue(&set->states);
+	destroy_bitmap(&set->contained_ids);
+}
+
+void state_set_add_state(struct state_set *set, struct state *s)
+{
+	if (!bitmap_query(&set->contained_ids, s->id))
+	{
+		bitmap_set(&set->contained_ids, s->id);
+		queue_push(&set->states, &s);
+	}
+}
+
+int state_set_contains_state(struct state_set *set, struct state *s)
+{
+	return bitmap_query(&set->contained_ids, s->id);
+}
+
+/*
+ * src: The state we start from.
+ * set: The set of states already found on a nil connection. A set is needed
+ * 			to ensure move_on_nil does not enter an infinite recursive loop.
+ */
+void move_on_nil(struct state *src, struct state_set *set)
+{
+	// If src is not in map, add src to dst, set src in map, and call move_on_nil
+	// on all states nil connected to src.
+	if (!state_set_contains_state(set, src))
+	{
+		state_set_add_state(set, src);
+
+		struct queue src_nil_dup = src->nil_connections;
+		while (queue_length(&src_nil_dup))
+		{
+			struct state *s;
+			queue_pop(&src_nil_dup, &s);
+			move_on_nil(s, set);
+		}
+	}
+}
+
+
 /* We start with a queue of states. We are going to modify this queue to reflect
  * the move operation. If at the end of this procedure q is empty, then there are
  * no moves possible and the automaton has frozen. q starts containing 1 state:
@@ -227,6 +282,51 @@ static int build_atom_automaton(struct regex_parse_tree *p, struct buffer *bank,
  * state in q. A pointer to this character is moved into out, and the characters
  * between in and out comprise the matching lexeme.
  */
+
+/* After a move operation, states contains all the states connected to the previous
+ * states on *in, as well as all the states connected to the previous states on nil.
+ * This means that before the automaton is called on the first char in the input,
+ * elementary move must be called on nill.
+ */
+
+
+/*
+void move(struct queue *states, char const *in)
+{
+	struct queue states_dup = *states;
+	for (int num_states = queue_length(states); num_states; --num_states)
+	{
+		struct state *s;
+		queue_pop(&states_dup, &s);
+		
+	}
+}
+
+
+void move(struct queue *states, char const *in)
+{
+	// Given a pointer to the next character to consume, advance the set of states
+	// to the suceeding set.
+	
+	struct queue tmp; 
+	init_queue(&tmp, sizeof(struct state *), 5);
+
+	struct queue *states_dup = states;
+	for (int num_states = queue_length(states); num_states; --num_states)
+	{
+		struct state *s;
+		queue_pop(states_dup, &s);
+		
+		struct queue *char_connections = s->group_connections + (*in - 'A');
+		struct queue *nil_connections = &s->nil_connections;
+
+
+	}
+
+	destroy_queue(&tmp);
+}
+
+
 void move(struct queue *q, char const *in, char const **out)
 {
 	long num_states = queue_length(q);
@@ -258,4 +358,4 @@ void move(struct queue *q, char const *in, char const **out)
 		num_states = queue_length(q);
 	}
 }
-
+*/
