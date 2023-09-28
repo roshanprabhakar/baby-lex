@@ -59,5 +59,9 @@ void destroy_state_set(struct state_set *set);
 void state_set_add_state(struct state_set *set, struct state *s);
 int state_set_contains_state(struct state_set *set, struct state *s);
 
-void move_on_nil(struct state *s, struct state_set *set);
+int move_on_nil(struct state *s, struct state_set *set);
+int move_set_on_nil(struct queue *states, int num_total_states);
+int move_on_alpha(struct state *s, char alpha, struct state_set *set);
+int move_set_on_alpha(struct queue *states, char alpha, int num_total_states);
 
+char const *move(struct queue *i_state, char const *in, int num_total_states);

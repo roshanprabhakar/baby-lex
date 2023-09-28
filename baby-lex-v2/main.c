@@ -40,7 +40,7 @@ int main()
 		.capacity = sizeof(struct state) * (num_states)
 	};
 
-	// Give ids to all allocable states.
+	// Give ids to all allocable states. NOTE: ID = 1 IS THE ONLY ACCEPTING STATE.
 	for (int i = 0; i < num_states; ++i)
 	{ ((struct state *)b_automaton.p)[i].id = i; }
 
@@ -57,6 +57,25 @@ int main()
 	}
 	*/
 
+	char const *in = "BABBABABABBB";
+
+	struct state *i_state = (struct state *)b_automaton.p;
+
+	struct queue init_state;
+	init_queue(&init_state, sizeof(struct state *), num_states);
+	queue_push(&init_state, &i_state);
+
+	char const *out = move(&init_state, in, num_states);	
+
+	printf("lexeme: ");
+	for (char const *c = in; c != out + 1; ++c)
+	{
+		printf("%c", *c);
+	}
+	printf("\n");
+	printf("num chars in token: %ld\n", out - in + 1);
+
+	/*
 	// Sandbox
 	struct state *src = (struct state *)b_automaton.p + 3;
 	struct state *dst1 = (struct state *)b_automaton.p + 1;
@@ -77,37 +96,23 @@ int main()
 		dump_state(&s);
 	}
 
-	
-	struct state_set set;
-	init_state_set(&set, num_states);
+	struct queue states;
+	init_queue(&states, sizeof(struct state *), num_states);
 
-	move_on_nil(b_automaton.p, &set);
+	src = (struct state *)b_automaton.p + 0;
+	queue_push(&states, &src);
 
-	printf("states in e-closure(0):\n");
-	dump_queue(&set.states, &dump_state);
+	src = (struct state *)b_automaton.p + 2;
+	queue_push(&states, &src);
 
-	destroy_state_set(&set);
+	move_set_on_alpha(&states, 'A', num_states);
+	dump_queue(&states, &dump_state);
 
-	/*
-	// Testing move_on_nil.
-	struct bitmap m;
-	init_bitmap(&m, num_states);
-	struct queue q;
-	init_queue(&q, sizeof(struct state *), 3);
-
-	move_on_nil(b_automaton.p, &q, &m);
-
-	printf("nil connected to state 0:\n");
-	while (queue_length(&q))
-	{
-		struct state *s;
-		queue_pop(&q, &s);
-		printf("%d\n", s->id);
-	}
-
-	destroy_bitmap(&m);
-	destroy_queue(&q);
+	destroy_queue(&states);
 	*/
+
+
+
 
 	// ----------------------------
 	// Destroy parse tree.

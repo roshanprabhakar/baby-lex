@@ -40,6 +40,7 @@ void dump_state(void *p)
 {
 	struct state *s = *(struct state **)p;
 	printf("------- STATE %d -------\n", s->id);
+	/*
 	for (int i = 0; i < sizeof(s->group_connections) / sizeof(struct queue); ++i)
 	{
 		struct queue *q = s->group_connections + i;
@@ -51,6 +52,7 @@ void dump_state(void *p)
 	printf("%ld nil connections: ", queue_length(q));
 	dump_queue(q, &dump_state_queue_entry);
 	printf("\n");
+	*/
 }
 
 static int build_term_automaton(struct regex_parse_tree *, struct buffer *,
@@ -253,9 +255,15 @@ int state_set_contains_state(struct state_set *set, struct state *s)
  * src: The state we start from.
  * set: The set of states already found on a nil connection. A set is needed
  * 			to ensure move_on_nil does not enter an infinite recursive loop.
+ *
+ * If the final state is reached on this move, return 1. Else return 0.
  */
-void move_on_nil(struct state *src, struct state_set *set)
+int move_on_nil(struct state *src, struct state_set *set)
 {
+	int ret = 0;
+
+	if (src->id == 1) ret = 1;
+
 	// If src is not in map, add src to dst, set src in map, and call move_on_nil
 	// on all states nil connected to src.
 	if (!state_set_contains_state(set, src))
@@ -267,11 +275,80 @@ void move_on_nil(struct state *src, struct state_set *set)
 		{
 			struct state *s;
 			queue_pop(&src_nil_dup, &s);
-			move_on_nil(s, set);
+			if (move_on_nil(s, set)) ret = 1;
 		}
 	}
+
+	return ret;
 }
 
+/* states: A queue of states representing the initial condition, and modified
+ * by the procedure to reflect the move on e-connections. */
+int move_set_on_nil(struct queue *states, int num_total_states)
+{
+	int ret = 0;
+
+	// We are going to add to this iteratively in a BFS search from states,
+	// then extract the underlying queue.
+	struct state_set reachable;
+	init_state_set(&reachable, num_total_states);
+	
+	int num_states = queue_length(states);
+	for (; num_states; --num_states)
+	{
+		struct state *cur;
+		queue_pop(states, &cur);
+
+		if (move_on_nil(cur, &reachable)) ret = 1;
+	}
+
+	destroy_queue(states);
+	*states = reachable.states;
+	destroy_bitmap(&reachable.contained_ids);
+
+	return ret;
+}
+
+int move_on_alpha(struct state *src, char alpha, struct state_set *set)
+{
+	int ret = 0;
+
+	struct queue group = *(src->group_connections + (alpha - 'A'));
+
+	int num_states = queue_length(&group);
+	for (; num_states; --num_states)
+	{
+		struct state *s;
+		queue_pop(&group, &s);
+		state_set_add_state(set, s);
+		if (s->id == 1) ret = 1;
+	}
+
+	return ret;
+}
+
+int move_set_on_alpha(struct queue *states, char alpha, int num_total_states)
+{
+	int ret = 0;
+
+	struct state_set reachable;
+	init_state_set(&reachable, num_total_states);
+
+	int num_states = queue_length(states);
+	for (; num_states; --num_states)
+	{
+		struct state *cur;
+		queue_pop(states, &cur);
+
+		if (move_on_alpha(cur, alpha, &reachable)) ret = 1;
+	}
+
+	destroy_queue(states);
+	*states = reachable.states;
+	destroy_bitmap(&reachable.contained_ids);
+
+	return ret;
+}
 
 /* We start with a queue of states. We are going to modify this queue to reflect
  * the move operation. If at the end of this procedure q is empty, then there are
@@ -288,74 +365,17 @@ void move_on_nil(struct state *src, struct state_set *set)
  * This means that before the automaton is called on the first char in the input,
  * elementary move must be called on nill.
  */
-
-
-/*
-void move(struct queue *states, char const *in)
+char const *move(struct queue *states, char const *in, int num_total_states)
 {
-	struct queue states_dup = *states;
-	for (int num_states = queue_length(states); num_states; --num_states)
+	int found = move_set_on_nil(states, num_total_states);
+
+	char const *lexeme_end = in;
+	for (char const *c = in; *c && queue_length(states); ++c)
 	{
-		struct state *s;
-		queue_pop(&states_dup, &s);
-		
-	}
-}
-
-
-void move(struct queue *states, char const *in)
-{
-	// Given a pointer to the next character to consume, advance the set of states
-	// to the suceeding set.
-	
-	struct queue tmp; 
-	init_queue(&tmp, sizeof(struct state *), 5);
-
-	struct queue *states_dup = states;
-	for (int num_states = queue_length(states); num_states; --num_states)
-	{
-		struct state *s;
-		queue_pop(states_dup, &s);
-		
-		struct queue *char_connections = s->group_connections + (*in - 'A');
-		struct queue *nil_connections = &s->nil_connections;
-
-
+		move_set_on_alpha(states, *c, num_total_states);
+		found = move_set_on_nil(states, num_total_states);
+		if (found) lexeme_end = c;
 	}
 
-	destroy_queue(&tmp);
+	return lexeme_end;
 }
-
-
-void move(struct queue *q, char const *in, char const **out)
-{
-	long num_states = queue_length(q);
-
-	for (char *curs = in; *in && num_states; ++curs)
-	{
-		for (int i = 0; i < num_states; ++i)
-		{
-			struct state *s = queue_pop(q);
-
-			// char_connect and nil_connect may be safely popped from. Doing so
-			// will not change queue's owned by states.
-			struct queue char_connect;
-			queue_dup(&char_connect, s->group_connections + (*in - 'A'));
-
-			struct queue nil_connect;
-			queue_dup(&nil_connect, &s->nil_connections);
-			
-			// Push all nil connections into q.
-			struct state *bin;
-			while (queue_pop(nil_connect, &bin) != -1)
-			{ 
-				queue_push(q, &bin); 
-				if ( // TODO
-			}
-
-		}
-
-		num_states = queue_length(q);
-	}
-}
-*/
