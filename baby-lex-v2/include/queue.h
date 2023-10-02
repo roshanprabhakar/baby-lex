@@ -17,11 +17,10 @@ void destroy_queue(struct queue *q);
 
 int queue_push(struct queue *q, void *src);
 int queue_pop(struct queue *q, void *dst);
-void *queue_peek(struct queue *q);
+int queue_peek(struct queue *q, void *dst);
 
 long queue_length(struct queue *q);
 
-// For debug purposes.
-void dump_queue(struct queue *q, void (*print_entry) (void *));
+void for_each(struct queue *q, void (*fn) (void *));
 
 #endif // QUEUE_H

@@ -31,10 +31,11 @@ int init_queue(struct queue *q,
 void destroy_queue(struct queue *q)
 { free(q->data); }
 
-void *queue_peek(struct queue *q)
+int queue_peek(struct queue *q, void *dst)
 {
-	if (q->push_curs == q->pop_curs) return NULL;
-	return (char *) q->data + q->pop_curs * q->atom_size_bytes;
+	if (q->push_curs == q->pop_curs) return -1;
+	memcpy(dst, (char *)q->data + q->pop_curs * q->atom_size_bytes, q->atom_size_bytes);
+	return 0;
 }
 
 long queue_length(struct queue *q)
@@ -102,11 +103,13 @@ int queue_push(struct queue *q, void *src)
 	return queue_extend(q);
 }
 
-void dump_queue(struct queue *q, void (*print_entry)(void *))
+// fn is a function which accepts a pointer to objects of the 
+// type contained q.
+void for_each(struct queue *q, void (*fn)(void *))
 {
 	for (long curs = q->pop_curs; curs != q->push_curs; ++curs)
 	{
-		print_entry((char *)q->data + curs * q->atom_size_bytes);
+		fn((char *)q->data + curs * q->atom_size_bytes);
 		if (curs == q->capacity) curs = 0;
 	}
 }

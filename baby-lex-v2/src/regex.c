@@ -39,7 +39,11 @@ static int atom(char **, struct buffer *, struct regex_parse_tree **);
 static void strip_head(char **in) { while (**in == ' ' || **in == '\t' || **in == '\n') ++(*in); }
 
 
-static int is_alphabet(char c) { return c == 'A' || c == 'B'; }
+static int is_alphabet(char c)
+{
+	// c is individual || c is outside.
+	return (c >= 32 && c <= 126) || (c <= 0 && c >= -4);
+}
 
 
 /* In a regex_parse_tree of type NODE_ATOM, we determine whether the op_left holds a char
@@ -69,11 +73,20 @@ static int atom(char **in, struct buffer *b, struct regex_parse_tree **root)
 
 		++in_ref;
 
+		printf("regex-prefixed string: %s\n", in_ref);
+
 		strip_head(&in_ref);
 		ret += regex(&in_ref, b, (root) ? &((*root)->op_left).sub_tree : NULL);
 		strip_head(&in_ref);
 
-		if (*in_ref != ')') { printf("ERROR: atom parse: no matching close bracket. "); exit(0); }
+		printf("regex-postfixed string: %s\n", in_ref);
+
+		if (*in_ref != ')')
+		{
+			printf("ERROR: atom parse: no matching close bracket. ");
+			printf("Rest of input: %s\n", in_ref);
+			exit(0);
+		}
 	}
 	else if (is_alphabet(*in_ref))
 	{
@@ -84,7 +97,11 @@ static int atom(char **in, struct buffer *b, struct regex_parse_tree **root)
 			(*root)->op_left.alphabet = *in_ref;
 		}
 	}
-	else 									{ printf("ERROR: atom parse: alphabet expected but not found. "); exit(0); }
+	else
+	{ 
+		printf("ERROR: atom parse: alphabet expected but found: %d %c\n", *in_ref, *in_ref); 
+		exit(0); 
+	}
 
 	++in_ref;
 

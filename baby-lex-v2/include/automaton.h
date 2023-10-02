@@ -12,10 +12,15 @@
  * 	uppercase letters: -2 '\xfe' [A-Z]
  * 	letters: 					 -3 '\xfd' [a-zA-Z]
  * 	digits: 					 -4 '\xfc' [0-9]
- * 	nil: 							 -5 '\xfd' [nil connections]
  *
  * Each state contains a queue entry for each of these groups, as well as a separate queue
  * for connections on nil. */
+
+struct char_queue
+{
+	char c;
+	struct queue q; // Queue of states.
+};
 
 // One row of the state table defined in the book.
 struct state
@@ -24,6 +29,7 @@ struct state
 	// current: 0 -> A, ... 3 -> D
 	struct queue group_connections[4];
 	struct queue nil_connections;
+	struct queue char_queues; // Queue of char_queue.
 	int id;
 };
 
@@ -45,7 +51,6 @@ void dump_state(void *state);
 int build_regex_automaton(struct regex_parse_tree *p, struct buffer *bank,
 		struct state *i, struct state *f);
 
-
 // Traversing the automaton //
 
 struct state_set
@@ -64,4 +69,4 @@ int move_set_on_nil(struct queue *states, int num_total_states);
 int move_on_alpha(struct state *s, char alpha, struct state_set *set);
 int move_set_on_alpha(struct queue *states, char alpha, int num_total_states);
 
-char const *move(struct queue *i_state, char const *in, int num_total_states);
+int move(struct queue *i_state, char const *in, int num_total_states);

@@ -18,6 +18,13 @@ void init_state(struct state *s)
 		init_queue(s->group_connections + i, sizeof(struct state *), 2);
 	}
 	init_queue(&s->nil_connections, sizeof(struct state *), 5);
+	init_queue(&s->char_queues, sizeof(struct char_queue), 5);
+}
+
+static void destroy_char_queue(void *p)
+{
+	struct char_queue *q = (struct char_queue *)p;
+	destroy_queue(&q->q);
 }
 
 void destroy_state(struct state *s)
@@ -27,11 +34,21 @@ void destroy_state(struct state *s)
 		destroy_queue(s->group_connections + i);
 	}
 	destroy_queue(&s->nil_connections);
+	for_each(&s->char_queues, &destroy_char_queue);
+	destroy_queue(&s->char_queues);
 }
 
 static void dump_state_queue_entry(void *p)
 {
 	printf("%d ", (*((struct state **)p))->id);
+}
+
+static void dump_state_char_queue(void *p)
+{
+	struct char_queue *cq = (struct char_queue *)p;
+	printf("[%c: ", cq->c);
+	for_each(&cq->q, &dump_state_queue_entry);
+	printf("]");
 }
 
 /* This function takes a double pointer to a state, and is meant for 
@@ -40,19 +57,48 @@ void dump_state(void *p)
 {
 	struct state *s = *(struct state **)p;
 	printf("------- STATE %d -------\n", s->id);
-	/*
 	for (int i = 0; i < sizeof(s->group_connections) / sizeof(struct queue); ++i)
 	{
 		struct queue *q = s->group_connections + i;
 		printf("%ld group %c connections: ", queue_length(q), 'A' + i);
-		dump_queue(q, &dump_state_queue_entry);
+		for_each(q, &dump_state_queue_entry);
 		printf("\n");
 	}
+	printf("char queues: ");
+	for_each(&s->char_queues, &dump_state_char_queue);
+	printf("\n");
+
 	struct queue *q = &s->nil_connections;
 	printf("%ld nil connections: ", queue_length(q));
-	dump_queue(q, &dump_state_queue_entry);
+	for_each(q, &dump_state_queue_entry);
 	printf("\n");
-	*/
+}
+
+struct char_queue *state_get_char_queue(struct state *s, char c)
+{
+	struct queue char_queue_dup = s->char_queues;
+	for (int num_queues = queue_length(&char_queue_dup);
+			 num_queues;
+			 --num_queues)
+	{
+		struct char_queue cq;
+		queue_peek(&char_queue_dup, &cq);
+		if (cq.c == c)
+		{
+			return (struct char_queue *) s->char_queues.data +
+				s->char_queues.pop_curs;
+		}
+		queue_pop(&char_queue_dup, &cq);
+	}
+	return 0x0;
+}
+
+void state_insert_char_queue(struct state *s, char c)
+{
+	struct char_queue new_cq;
+	new_cq.c = c;
+	init_queue(&new_cq.q, sizeof(struct state *), 2);
+	queue_push(&s->char_queues, &new_cq);
 }
 
 static int build_term_automaton(struct regex_parse_tree *, struct buffer *,
@@ -208,7 +254,30 @@ static int build_atom_automaton(struct regex_parse_tree *p, struct buffer *bank,
 		// regardless of bank && i && f.
 		if (bank && i && f)
 		{
-			queue_push(i->group_connections + (p->op_left.alphabet - 'A'), &f);
+			char alpha = p->op_left.alphabet;
+			if (alpha >= 32 && alpha <= 126)
+			{
+				// Create/Append to the char queue for this character.
+				struct char_queue *cq = state_get_char_queue(i, alpha);
+				if (cq == 0x0)
+				{
+					state_insert_char_queue(i, alpha);
+					cq = state_get_char_queue(i, alpha);
+				}
+				queue_push(&cq->q, &f);
+			}
+			else if (alpha <= 0 && alpha >= -4)
+			{
+				// We are dealing with a character groupings
+				queue_push(i->group_connections - alpha, &f);
+			}
+			else
+			{
+				printf("Encountered unknown character or grouping: %c, aborting.\n", alpha);
+				return -1;
+			}
+
+			// queue_push(i->group_connections + (p->op_left.alphabet - 'A'), &f);
 		}
 	}
 	else
@@ -365,17 +434,18 @@ int move_set_on_alpha(struct queue *states, char alpha, int num_total_states)
  * This means that before the automaton is called on the first char in the input,
  * elementary move must be called on nill.
  */
-char const *move(struct queue *states, char const *in, int num_total_states)
+int move(struct queue *states, char const *in, int num_total_states)
 {
 	int found = move_set_on_nil(states, num_total_states);
 
-	char const *lexeme_end = in;
+	int ret = 0, counter = 0;
 	for (char const *c = in; *c && queue_length(states); ++c)
 	{
 		move_set_on_alpha(states, *c, num_total_states);
 		found = move_set_on_nil(states, num_total_states);
-		if (found) lexeme_end = c;
+		++counter;
+		if (found) ret = counter;
 	}
 
-	return lexeme_end;
+	return ret;
 }

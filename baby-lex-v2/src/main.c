@@ -5,7 +5,7 @@
 
 int main()
 {
-	char *reg_str = "(A|B)*AB";
+	char *reg_str = "(AAA|B)?(BBB)";
 	char *ref2 = reg_str;
 
 	// ----------------------------
@@ -25,6 +25,9 @@ int main()
 
 	printf("num nodes: %d\n", num_nodes);
 	dump_regex_parse_tree(b_parse_tree.p); printf("\n");
+
+	free(b_parse_tree.p);
+	return 0;
 
 	// ----------------------------
 	// Allocate and build automaton.
@@ -48,16 +51,15 @@ int main()
 	struct state *f = buffer_alloc(&b_automaton, sizeof(struct state)); init_state(f);
 	(void) build_regex_automaton(b_parse_tree.p, &b_automaton, i, f);
 
-	/*
 	// Dump automaton state.
 	for (int i = 0; i < b_automaton.write_curs / sizeof(struct state); ++i)
 	{
 		struct state *s = ((struct state *)b_automaton.p) + i;
-		dump_state(s);
+		dump_state(&s);
 	}
-	*/
 
-	char const *in = "BABBABABABBB";
+	/*
+	char const *in = "BBBBAAA";
 
 	struct state *i_state = (struct state *)b_automaton.p;
 
@@ -65,15 +67,17 @@ int main()
 	init_queue(&init_state, sizeof(struct state *), num_states);
 	queue_push(&init_state, &i_state);
 
-	char const *out = move(&init_state, in, num_states);	
+	int num_chars = move(&init_state, in, num_states);	
 
 	printf("lexeme: ");
-	for (char const *c = in; c != out + 1; ++c)
+	for (int i = 0; i < num_chars; ++i)
 	{
-		printf("%c", *c);
+		printf("%c", *(in + i));
 	}
 	printf("\n");
-	printf("num chars in token: %ld\n", out - in + 1);
+
+	printf("num chars in token: %d\n", num_chars);
+	*/
 
 	/*
 	// Sandbox
@@ -110,9 +114,6 @@ int main()
 
 	destroy_queue(&states);
 	*/
-
-
-
 
 	// ----------------------------
 	// Destroy parse tree.
