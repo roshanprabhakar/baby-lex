@@ -48,7 +48,7 @@ static void strip_head(char **in) { while (**in == ' ' || **in == '\t' || **in =
 static int is_alphabet(char c)
 {
 	int ret = 0;
-	ret += (c >= -4 && c <= -1) ? 1 : 0;
+	ret += (c >= -7 && c <= -1) ? 1 : 0;
 	if (c >= 32 && c <= 126)
 	{
 		if (c != 40 && c != 41 && c != 124)

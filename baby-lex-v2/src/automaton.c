@@ -179,7 +179,7 @@ static int build_atom_automaton(struct regex_parse_tree *p, struct buffer *bank,
 				}
 				queue_push(&cq->q, &f);
 			}
-			else if (alpha <= 0 && alpha >= -4)
+			else if (alpha <= 0 && alpha >= -7)
 			{
 				// We are dealing with a character groupings
 				queue_push(i->group_connections - (alpha + 1), &f);
@@ -281,11 +281,12 @@ int move_on_alpha(struct state *src, char alpha, struct state_set *set)
 		queue_push(&char_groups, &unique_char_q);
 	}
 
-	int groups = is_lower(alpha) 	| 
-							 is_upper(alpha) 	| 
-							 is_letter(alpha) |
-							 is_digit(alpha) 	|
-							 is_unary(alpha) 	|
+	int groups = is_lower(alpha) 			| 
+							 is_upper(alpha) 			| 
+							 is_letter(alpha) 		|
+							 is_hex_letter(alpha) |
+							 is_digit(alpha) 			|
+							 is_unary(alpha) 			|
 							 is_binary(alpha);
 
 	// Check each of the five groups.

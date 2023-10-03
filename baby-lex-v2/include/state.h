@@ -10,10 +10,11 @@
  *
  * 	lowercase letters: -1 '\xff' [a-z]
  * 	uppercase letters: -2 '\xfe' [A-Z]
- * 	letters: 					 -3 '\xfd' [a-zA-Z]
- * 	digits: 					 -4 '\xfc' [0-9]
- * 	unary operators:	 -5 '\xfb' [...]
- * 	binary operators:	 -6 '\xfa' [...]
+ * 	hex letters: 			 -3 '\xfd' [a-fA-F]
+ * 	letters: 					 -4 '\xfc' [a-zA-Z]
+ * 	digits: 					 -5 '\xfb' [0-9]
+ * 	unary operators:	 -6 '\xfa' [...]
+ * 	binary operators:	 -7 '\xf9' [...]
  *
  * Each state contains a queue entry for each of these groups, as well as a separate queue
  * for connections on nil. */
@@ -28,7 +29,7 @@ struct char_queue
 struct state
 {
 	// (\xff + 1) * -1 -> 0, (\xfe + 1) * -1 -> 1, ...
-	struct queue group_connections[6];
+	struct queue group_connections[7];
 	struct queue nil_connections;
 	struct queue char_queues; // Queue of char_queue.
 	int id;

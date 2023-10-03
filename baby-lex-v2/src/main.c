@@ -5,8 +5,8 @@
 
 int main()
 {
-	// char *reg_str = "(AAA|B)?(BBB)";
-	char *reg_str = "0?(x|b)?\xfc*(U|L|LL)?";
+	// Regex for number literals (floating point, bitwidth specifier, signedness specifier)
+	char *reg_str = "0?(x|b)?\xfb*(U|L|LL)?";
 	char *ref2 = reg_str;
 
 	// ----------------------------
@@ -59,7 +59,7 @@ int main()
 	}
 	*/
 
-	char const *in = "112121";
+	char const *in = "0b101011awefawe";
 
 	struct state *i_state = (struct state *)b_automaton.p;
 

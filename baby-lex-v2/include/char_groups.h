@@ -3,6 +3,7 @@
 
 int is_lower(char c);
 int is_upper(char c);
+int is_hex_letter(char c);
 int is_letter(char c);
 int is_digit(char c);
 int is_unary(char c);
