@@ -6,6 +6,7 @@
 #include "arrbuf.h"
 #include "queue.h"
 #include "bitmap.h"
+#include "char_groups.h"
 
   //////////////////////////////////////////////////////////////////////
  ///////////////// CONSTRUCTING AND INSPECTING STATES /////////////////
@@ -269,7 +270,7 @@ static int build_atom_automaton(struct regex_parse_tree *p, struct buffer *bank,
 			else if (alpha <= 0 && alpha >= -4)
 			{
 				// We are dealing with a character groupings
-				queue_push(i->group_connections - alpha, &f);
+				queue_push(i->group_connections - (alpha + 1), &f);
 			}
 			else
 			{
@@ -382,15 +383,54 @@ int move_on_alpha(struct state *src, char alpha, struct state_set *set)
 {
 	int ret = 0;
 
-	struct queue group = *(src->group_connections + (alpha - 'A'));
+	// Get queue containing all queues from which to add.
+	struct queue char_groups;
 
-	int num_states = queue_length(&group);
-	for (; num_states; --num_states)
+	// Only needs space for max 1 special queue + 6 group queues.
+	init_queue(&char_groups, sizeof(struct queue *), 7);
+
+	struct char_queue *cq = state_get_char_queue(src, alpha);
+	if (cq)
 	{
-		struct state *s;
-		queue_pop(&group, &s);
-		state_set_add_state(set, s);
-		if (s->id == 1) ret = 1;
+		struct queue *unique_char_q = &(cq->q);
+		queue_push(&char_groups, &unique_char_q);
+	}
+
+	int groups = is_lower(alpha) 	| 
+							 is_upper(alpha) 	| 
+							 is_letter(alpha) |
+							 is_digit(alpha) 	|
+							 is_unary(alpha) 	|
+							 is_binary(alpha);
+
+	// Check each of the five groups.
+	struct queue *buf;
+	for (int i = 0; i < 6; ++i)
+	{
+		int add_group = groups & 1;
+		if (add_group)
+		{
+			buf = src->group_connections + i;
+			queue_push(&char_groups, &buf);
+		}
+		groups >>= 1;
+	}
+
+	int num_groups = queue_length(&char_groups);
+	for (; num_groups; --num_groups)
+	{
+		struct queue *group;
+		queue_pop(&char_groups, &group);
+
+		struct queue poppable_group = *group;
+		int num_states = queue_length(group);
+		for (; num_states; --num_states)
+		{
+			struct state *s;
+			queue_pop(&poppable_group, &s);
+			state_set_add_state(set, s);
+			if (s->id == 1) ret = 1;
+		}
 	}
 
 	return ret;

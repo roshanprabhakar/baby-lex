@@ -5,7 +5,8 @@
 
 int main()
 {
-	char *reg_str = "(AAA|B)?(BBB)";
+	// char *reg_str = "(AAA|B)?(BBB)";
+	char *reg_str = "0?(x|b)?\xfc*(U|L|LL)?";
 	char *ref2 = reg_str;
 
 	// ----------------------------
@@ -25,9 +26,6 @@ int main()
 
 	printf("num nodes: %d\n", num_nodes);
 	dump_regex_parse_tree(b_parse_tree.p); printf("\n");
-
-	free(b_parse_tree.p);
-	return 0;
 
 	// ----------------------------
 	// Allocate and build automaton.
@@ -49,17 +47,19 @@ int main()
 
 	struct state *i = buffer_alloc(&b_automaton, sizeof(struct state)); init_state(i);
 	struct state *f = buffer_alloc(&b_automaton, sizeof(struct state)); init_state(f);
+
 	(void) build_regex_automaton(b_parse_tree.p, &b_automaton, i, f);
 
+	/*
 	// Dump automaton state.
 	for (int i = 0; i < b_automaton.write_curs / sizeof(struct state); ++i)
 	{
 		struct state *s = ((struct state *)b_automaton.p) + i;
 		dump_state(&s);
 	}
+	*/
 
-	/*
-	char const *in = "BBBBAAA";
+	char const *in = "112121";
 
 	struct state *i_state = (struct state *)b_automaton.p;
 
@@ -77,7 +77,6 @@ int main()
 	printf("\n");
 
 	printf("num chars in token: %d\n", num_chars);
-	*/
 
 	/*
 	// Sandbox

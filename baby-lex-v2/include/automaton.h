@@ -12,6 +12,8 @@
  * 	uppercase letters: -2 '\xfe' [A-Z]
  * 	letters: 					 -3 '\xfd' [a-zA-Z]
  * 	digits: 					 -4 '\xfc' [0-9]
+ * 	unary: 						 -5 '\xfb' [...]
+ * 	binary: 					 -6 '\xfa' [...]
  *
  * Each state contains a queue entry for each of these groups, as well as a separate queue
  * for connections on nil. */
@@ -25,9 +27,8 @@ struct char_queue
 // One row of the state table defined in the book.
 struct state
 {
-	// TODO: (\xff + 1) * -1 -> 0, (\xfe + 1) * -1 -> 1, ...
-	// current: 0 -> A, ... 3 -> D
-	struct queue group_connections[4];
+	// (\xff + 1) * -1 -> 0, (\xfe + 1) * -1 -> 1, ...
+	struct queue group_connections[6];
 	struct queue nil_connections;
 	struct queue char_queues; // Queue of char_queue.
 	int id;
