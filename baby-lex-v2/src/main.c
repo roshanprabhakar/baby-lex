@@ -6,8 +6,10 @@
 int main()
 {
 	// Regex for number literals (floating point, bitwidth specifier, signedness specifier)
-	char *reg_str = "0?(x|b)?\xfb*(U|L|LL)?";
-	char *ref2 = reg_str;
+	// char *reg_str = "0?(x|b)?\xfb*(U|L|LL)?";
+	// char *ref2 = reg_str;
+  char *reg_str = "((0(00)*)?)(1(11)*|0(00)*)*((1(11)*)?)";
+  char *ref2 = reg_str;
 
 	// ----------------------------
 	// Allocate and build parse tree.
@@ -50,14 +52,12 @@ int main()
 
 	(void) build_regex_automaton(b_parse_tree.p, &b_automaton, i, f);
 
-	/*
 	// Dump automaton state.
 	for (int i = 0; i < b_automaton.write_curs / sizeof(struct state); ++i)
 	{
 		struct state *s = ((struct state *)b_automaton.p) + i;
 		dump_state(&s);
 	}
-	*/
 
 	char const *in = "0b101011awefawe";
 
